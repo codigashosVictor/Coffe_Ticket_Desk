@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Tickets - Exportación de Café S.A. de C.V.</title>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+    }
+
+    .glass {
+      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 2rem;
+      color: #fff;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass:hover {
+      transform: scale(1.01);
+      box-shadow: 0 12px 40px rgba(31, 38, 135, 0.4);
+    }
+
+    input.form-control,
+    textarea.form-control,
+    select.form-select {
+      background-color: rgba(255, 255, 255, 0.75);
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      color: #2d2d2d;
+      font-weight: 500;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #666;
+    }
+
+    h2,
+    h4 {
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .btn {
+      font-weight: 600;
+      border-radius: 0.5rem;
+    }
+
+    .card.glass {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.2);
+      border-left: 4px solid #8D6E63;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      border: none;
+    }
+
+    .btn-primary {
+      background-color: #6f42c1;
+      border: none;
+    }
+
+    .btn-success {
+      background-color: #198754;
+      border: none;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      border: none;
+    }
+
+    .btn-warning {
+      background-color: #ffc107;
+      border: none;
+      color: #000;
+    }
+
+    canvas {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 1rem;
+      padding: 1rem;
+    }
+  </style>
+
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBYyEq8ru-2pkVH5xt1vhivnTjovrCxVrA",
+      authDomain: "app-diplomado-6ff26.firebaseapp.com",
+      projectId: "app-diplomado-6ff26",
+      storageBucket: "app-diplomado-6ff26.firebasestorage.app",
+      messagingSenderId: "340318008110",
+      appId: "1:340318008110:web:b55b88489340b057f940bf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getFirestore();
+
+    // Referencias a elementos
+    const loginSection = document.getElementById("login-section");
+    const appSection = document.getElementById("app-section");
+    const registerBtn = document.getElementById("register-btn");
+    const loginBtn = document.getElementById("login-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+    const createTicketForm = document.getElementById("create-ticket-form");
+    const ticketList = document.getElementById("ticket-list");
+    const exportBtn = document.getElementById("export-btn");
+    const chartCanvas = document.getElementById("priorityChart");
+
+    let folioCounter = 1;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginSection.classList.add("d-none");
+        appSection.classList.remove("d-none");
+        loadTickets();
+      } else {
+        loginSection.classList.remove("d-none");
+        appSection.classList.add("d-none");
+      }
+    });
+
+    registerBtn.onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      if (!email || !email.includes("@")) return alert("Correo inválido.");
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert("Registro exitoso");
+      } catch (error) {
+        alert("Error en el registro: " + error.message);
+      }
+    };
+
+    loginBtn.onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      if (!email || !email.includes("@")) return alert("Correo inválido.");
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        alert("Error al iniciar sesión: " + error.message);
+      }
+    };
+
+    document.getElementById("recover-password").onclick = async () => {
+      const email = document.getElementById("email").value;
+      if (!email) return alert("Ingresa tu correo electrónico.");
+      await sendPasswordResetEmail(auth, email);
+      alert("Correo de recuperación enviado (simulado)");
+    };
+
+    logoutBtn.onclick = () => signOut(auth);
+
+    createTicketForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(createTicketForm));
+      data.folio = `COFFEE-${String(Date.now()).slice(-6)}`;
+      await addDoc(collection(db, "tickets"), data);
+      createTicketForm.reset();
+    };
+
+    const loadTickets = () => {
+      onSnapshot(collection(db, "tickets"), (snapshot) => {
+        ticketList.innerHTML = "";
+        let priorityCounts = { Alta: 0, Media: 0, Baja: 0 };
+        snapshot.forEach(doc => {
+          const t = doc.data();
+          priorityCounts[t.prioridad]++;
+          const card = document.createElement("div");
+          card.className = "card glass my-3 p-3";
+          card.innerHTML = `
+            <h5>${t["Título del Pedido"]} - <small>${t.folio}</small></h5>
+            <p>${t["Descripción del Pedido"]}</p>
+            <ul>
+              <li><strong>Prioridad:</strong> ${t.prioridad}</li>
+              <li><strong>Estado:</strong> ${t.estado}</li>
+              <li><strong>Cliente:</strong> ${t["Nombre del Cliente"]}</li>
+              <li><strong>Kilos:</strong> ${t["Kilogramos de Café"]}</li>
+              <li><strong>Tipo:</strong> ${t["Tipo de Producto"]}</li>
+              <li><strong>País:</strong> ${t["País de Envío"]}</li>
+            </ul>
+            <button class='btn btn-danger btn-sm mt-2' onclick='deleteTicket("${doc.id}")'><i class="fa fa-trash"></i> Eliminar</button>
+          `;
+          ticketList.appendChild(card);
+        });
+        drawChart(priorityCounts);
+      });
+    };
+
+    window.deleteTicket = async (id) => {
+      await deleteDoc(doc(db, "tickets", id));
+    };
+
+    exportBtn.onclick = async () => {
+      const snapshot = await getDocs(collection(db, "tickets"));
+      let csv = "Folio,Título,Descripción,Prioridad,Estado,Cliente,Kilos,Tipo,País\n";
+      snapshot.forEach(doc => {
+        const t = doc.data();
+        csv += `${t.folio},${t["Título del Pedido"]},${t["Descripción del Pedido"]},${t.prioridad},${t.estado},${t["Nombre del Cliente"]},${t["Kilogramos de Café"]},${t["Tipo de Producto"]},${t["País de Envío"]}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "tickets.csv";
+      link.click();
+    };
+
+    const drawChart = (data) => {
+      new Chart(chartCanvas, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            label: 'Cantidad de Tickets',
+            data: Object.values(data),
+            backgroundColor: ['#8D6E63', '#A1887F', '#D7CCC8']
+          }]
+        }
+      });
+    };
+  </script>
+</head>
+
+<body>
+  <!-- Login Section -->
+  <section id="login-section" class="container mt-5">
+    <div class="glass mx-auto max-w-md">
+      <h2 class="text-center mb-3">Inicio de Sesión</h2>
+      <input type="email" id="email" class="form-control mb-2" placeholder="Correo" autocomplete="off">
+      <input type="password" id="password" class="form-control mb-2" placeholder="Contraseña">
+      <button id="login-btn" class="btn btn-success w-100 mb-2"><i class="fas fa-sign-in-alt"></i> Iniciar
+        Sesión</button>
+      <button id="register-btn" class="btn btn-secondary w-100 mb-2"><i class="fas fa-user-plus"></i>
+        Registrarse</button>
+      <button id="recover-password" class="btn btn-link w-100">¿Olvidaste tu contraseña?</button>
+    </div>
+  </section>
+
+  <!-- App Section -->
+  <section id="app-section" class="container mt-5 d-none">
+    <div class="d-flex justify-content-between align-items-center">
+      <h2 class="text-white">Gestión de Tickets</h2>
+      <button id="logout-btn" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+    </div>
+
+    <form id="create-ticket-form" class="glass mt-3 space-y-3">
+      <h4 class="mb-3">Nuevo Ticket</h4>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <input name="Título del Pedido" class="form-control" placeholder="Título del Pedido" required>
+        </div>
+        <div class="col-md-6">
+          <input name="Nombre del Cliente" class="form-control" placeholder="Nombre del Cliente" required>
+        </div>
+      </div>
+      <textarea name="Descripción del Pedido" class="form-control" placeholder="Descripción" required></textarea>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <select name="prioridad" class="form-select">
+            <option value="Alta">Alta</option>
+            <option value="Media">Media</option>
+            <option value="Baja">Baja</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select name="estado" class="form-select">
+            <option value="Abierto">Abierto</option>
+            <option value="Cerrado">Cerrado</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <input type="number" name="Kilogramos de Café" class="form-control" placeholder="Kilos" required>
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <select name="Tipo de Producto" class="form-select">
+            <option value="Arábica">Arábica</option>
+            <option value="Robusta">Robusta</option>
+            <option value="Mezcla">Mezcla</option>
+            <option value="Descafeinado">Descafeinado</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <input name="País de Envío" class="form-control" placeholder="País de Envío" required>
+        </div>
+      </div>
+      <button class="btn btn-primary w-100 mt-3"><i class="fa fa-plus"></i> Crear Ticket</button>
+    </form>
+
+
+    <div class="mt-4">
+      <button id="export-btn" class="btn btn-warning"><i class="fa fa-file-export"></i> Exportar Tickets</button>
+    </div>
+
+    <div id="ticket-list" class="mt-4"></div>
+
+    <div class="glass mt-4">
+      <h4>Estadísticas por Prioridad</h4>
+      <canvas id="priorityChart"></canvas>
+    </div>
+  </section>
+</body>
+
+</html>
