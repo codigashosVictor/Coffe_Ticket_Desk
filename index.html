@@ -155,23 +155,23 @@
     registerBtn.onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      if (!email || !email.includes("@")) return notify("Correo inválido.");
+      if (!email || !email.includes("@")) return notify("Correo inválido.", 'error');
       try {
         await createUserWithEmailAndPassword(auth, email, password);
-        notify("Registro exitoso");
+        notify("Registro exitoso", 'success');
       } catch (error) {
-        notify("Error en el registro: " + error.message);
+        notify("Error en el registro: " + error.message, 'error');
       }
     };
 
     loginBtn.onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      if (!email || !email.includes("@")) return notify("Correo inválido.");
+      if (!email || !email.includes("@")) return notify("Correo inválido.", 'error');
       try {
         await signInWithEmailAndPassword(auth, email, password);
       } catch (error) {
-        notify("Error al iniciar sesión: " + error.message);
+        notify("Error al iniciar sesión: " + error.message, 'error');
       }
     };
 
@@ -179,7 +179,7 @@
       const email = document.getElementById("email").value;
       if (!email) return notify("Ingresa tu correo electrónico.");
       await sendPasswordResetEmail(auth, email);
-      notify("Correo de recuperación enviado (simulado)");
+      notify("Correo de recuperación enviado (simulado)", 'success');
     };
 
     logoutBtn.onclick = () => signOut(auth);
