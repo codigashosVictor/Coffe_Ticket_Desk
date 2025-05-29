@@ -13,6 +13,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Toastify CSS -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <!-- Toastify JS -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
   <style>
     body {
       background: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
@@ -150,31 +155,31 @@
     registerBtn.onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      if (!email || !email.includes("@")) return alert("Correo inválido.");
+      if (!email || !email.includes("@")) return notify("Correo inválido.");
       try {
         await createUserWithEmailAndPassword(auth, email, password);
-        alert("Registro exitoso");
+        notify("Registro exitoso");
       } catch (error) {
-        alert("Error en el registro: " + error.message);
+        notify("Error en el registro: " + error.message);
       }
     };
 
     loginBtn.onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      if (!email || !email.includes("@")) return alert("Correo inválido.");
+      if (!email || !email.includes("@")) return notify("Correo inválido.");
       try {
         await signInWithEmailAndPassword(auth, email, password);
       } catch (error) {
-        alert("Error al iniciar sesión: " + error.message);
+        notify("Error al iniciar sesión: " + error.message);
       }
     };
 
     document.getElementById("recover-password").onclick = async () => {
       const email = document.getElementById("email").value;
-      if (!email) return alert("Ingresa tu correo electrónico.");
+      if (!email) return notify("Ingresa tu correo electrónico.");
       await sendPasswordResetEmail(auth, email);
-      alert("Correo de recuperación enviado (simulado)");
+      notify("Correo de recuperación enviado (simulado)");
     };
 
     logoutBtn.onclick = () => signOut(auth);
@@ -246,6 +251,18 @@
         }
       });
     };
+
+    const notify = (message, type = "info") => {
+      Toastify({
+        text: message,
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        backgroundColor: type === "success" ? "#4CAF50" : type === "error" ? "#f44336" : "#2196F3",
+        close: true,
+      }).showToast();
+    };
+
   </script>
 </head>
 
